@@ -12,6 +12,7 @@ app.use(express.json());
 
 // indicating static files
 app.use(express.static("public"));
+app.use(express.static("src"));
 
 // URL encoding
 app.use(express.urlencoded({ extended: false }));
@@ -47,11 +48,19 @@ app.post("/signup", async (req, res) => {
 	});
 
 	if (existingUser) {
-		if (
-			existingUser.username === data.username ||
-			existingUser.email === data.email
-		) {
-			return res.status(400).send("User already exists");
+		if (existingUser.username === data.username) {
+			return res.status(400).render("error", {
+				title: "Signup Error",
+				message: "Username already exists",
+				redirectUrl: "/signup",
+			});
+		}
+		if (existingUser.email === data.email) {
+			return res.status(400).render("error", {
+				title: "Signup Error",
+				message: "Email already exists",
+				redirectUrl: "/signup",
+			});
 		}
 	} else {
 		const saltRounds = 10;
@@ -75,7 +84,11 @@ app.post("/login", async (req, res) => {
 		const existingUser = await collection.findOne({ email: data.email });
 
 		if (!existingUser) {
-			return res.status(400).send("User does not exist");
+			return res.status(400).render("error", {
+				title: "Login Error",
+				message: "User does not exist",
+				redirectUrl: "/login",
+			});
 		}
 
 		const isPasswordMatch = await bcrypt.compare(
@@ -84,13 +97,21 @@ app.post("/login", async (req, res) => {
 		);
 
 		if (!isPasswordMatch) {
-			return res.status(400).send("Password does not match");
+			return res.status(400).render("error", {
+				title: "Login Error",
+				message: "Wrong password",
+				redirectUrl: "/login",
+			});
 		} else {
 			res.redirect("/dashboard");
 		}
 	} catch (error) {
 		console.error("Error during login:", error);
-		res.status(500).send("Wrong details");
+		res.status(500).render("error", {
+			title: "Internal Server Error",
+			message: "Something went wrong. Please try again later.",
+			redirectUrl: "/login",
+		});
 	}
 });
 
